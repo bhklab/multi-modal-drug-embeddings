@@ -1,0 +1,13 @@
+# Changes here will be overwritten by Copier
+_commit: 0.14.2
+_src_path: gh:bhklab/bhklab-project-template
+author_email: bhklab.jamesbannon@gmail.com
+author_full_name: James Bannon
+github_username: jbannon
+has_additional_authors: false
+project_description: A procedure for multi-modal fusion for drug embedding
+project_name: Multi Modal Drug Embeddings
+project_slug: multi-modal-drug-embeddings
+publish_to_github: true
+python_version: '3.13'
+repo_location: bhklab
