@@ -48,9 +48,13 @@
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#data-downloading">Data Downloading</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a>
+    <li class="toctree-l3"><a class="reference internal" href="#creating-the-embeddings">Creating the Embeddings</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#analyzing-the-embeddings">Analyzing the Embeddings</a>
+    </li>
+        </ul>
     </li>
     </ul>
                 </li>
@@ -116,8 +120,32 @@ If you haven't installed it yet, <a href="https://pixi.sh/latest/">follow these 
 </ol>
 <pre><code class="language-bash">pixi install
 </code></pre>
-<h2 id="documentation">Documentation</h2>
-<p>Click <a href="https://bhklab.github.io/multi-modal-drug-embeddings">here</a> to view the full documentation.</p>
+<h3 id="data-downloading">Data Downloading</h3>
+<p>In the <code>data/rawdata/</code> folder create three directories named <code>LINCS</code>, <code>HDD</code> and <code>GEOM</code>. </p>
+<p>Next: </p>
+<ol>
+<li>From the <a href="https://orcestra.ca/annotations/69f36604f9dd88b7003f02fd">LINCS Project Page</a> download the following files and place them in the created <code>LINCS</code> directory. 
+    a. <code>colData.csv</code>
+    b. <code>drug_metadata.tsv</code>
+    c. <code>signatures.parquet</code>
+    d. <code>signatures.tsv</code></li>
+<li>From the <a href="https://orcestra.ca/annotations/6a3e65a98aaa8472dae547c8">HDD Project Page</a> download the following file and place it in the created <code>HDD</code> directory. 
+    a. <code>colData.csv</code></li>
+<li>From the <a href="https://orcestra.ca/annotations/69f3650ef9dd88b7003f02f7">GEOM Project Page</a> download the following files and place them in the created <code>GEOM</code> directory. 
+    a. <code>colData.tsv</code>
+    b. <code>WHIM_hp.parquet</code>
+    c. <code>drug_metadata.tsv</code></li>
+</ol>
+<h3 id="creating-the-embeddings">Creating the Embeddings</h3>
+<p>In <code>pixi.toml</code> file, make sure the <code>scikit-learn</code> version is set to <code>"&gt;=1.5.0, &lt;1.6"</code> by uncommenting line 39 and commenting out line 42 in the <code>pixi.toml</code> file.</p>
+<p>Next navigate to the <code>workflow/scripts/</code> folder and execute</p>
+<p><code>pixi run "python3 generate_embeddings.py -config embedding_config.yaml"</code></p>
+<p>This will generate embeddings for all possible subsets and as such will take a while. </p>
+<h3 id="analyzing-the-embeddings">Analyzing the Embeddings</h3>
+<p>Change the version of <code>scikit-learn</code> being used by editing the <code>pixi.toml</code>. For this part of the code we need  <code>scikit-learn</code> version  <code>"&gt;=1.9.0,&lt;2"</code>. </p>
+<p>Next execute </p>
+<p><code>pixi run "python3 analyze_embeddings.py"</code> </p>
+<p>to generate the plots. </p>
               
             </div>
           </div><footer>
@@ -170,5 +198,5 @@ If you haven't installed it yet, <a href="https://pixi.sh/latest/">follow these 
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2026-06-26 17:50:06.865929+00:00
+Build Date UTC : 2026-06-28 03:22:51.412122+00:00
 -->
