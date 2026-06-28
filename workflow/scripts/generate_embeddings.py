@@ -25,12 +25,13 @@ from typing import Dict
 import torch
 from utils import unpack_parameters
 import os
+from itertools import combinations
 
 
 
 def main(config:Dict):
  
-    outdir = dirs.RESULTS / "Response"
+    
 
     lincs = pd.read_parquet(dirs.RAWDATA / "LINCS"/ "signatures.parquet")
 
@@ -40,7 +41,7 @@ def main(config:Dict):
     
     
    
-    os.makedirs(outdir,exist_ok=True)
+    
 
     fpRadius, useBondTypes, includeChirality, fpSize = unpack_parameters(config['MORGAN_PARAMETERS'])
 
@@ -94,11 +95,36 @@ def main(config:Dict):
 
     chemberta_embeddings = pd.DataFrame(chemberta, index=molData['HDD.Compound.ID'])
 
+    view_name_to_data = {'fingerprints':fingerprints,
+                         'chemberta':chemberta_embeddings,
+                         'geom':geom,
+                         'lincs':lincs}
+    
+    all_subsets =[]
+    for j in range(1,5):
+        for subset in  list(combinations(view_name_to_data.keys(),j)):
+            all_subsets.append([j for j in subset])
+    
+    
 
-    integrator = MultiViewIntegrator(
-                views = [fingerprints, chemberta_embeddings, geom, lincs],
-                view_names=['fingerprints','chemberta','geom','lincs'],
-                    metrics = ['sqeuclidean']*4,
+    for subset in all_subsets:
+        
+        
+        if subset == ['fingerprints', 'chemberta', 'geom']:
+            subset_name = "Structure"
+        elif subset == ['fingerprints', 'chemberta', 'geom', 'lincs']:
+            subset_name = "Response"
+        else:
+            subset_name = "+".join(subset)
+            
+        outdir = dirs.RESULTS / subset_name
+        os.makedirs(outdir,exist_ok=True)
+
+        print(f"\nWorking on {subset_name}\n")
+        integrator = MultiViewIntegrator(
+                views = [view_name_to_data[view] for view in subset],
+                view_names=subset,
+                    metrics = ['sqeuclidean']*len(subset),
                     neighborhood_size= nbhd_size,
                     mu= mu,
                     alignment_epochs=alignment_epochs,
@@ -107,20 +133,20 @@ def main(config:Dict):
 
 
 
-    embeds_final, S_final, model = integrator.neural_integration()
-    embeds_final = embeds_final.reset_index(names='HDD.Compound.ID')
-    embeds_final = embeds_final.merge(
-        molData[['HDD.Compound.ID','Mechanism.of.Action']],
-        on = 'HDD.Compound.ID'    )
+        embeds_final, S_final, model = integrator.neural_integration()
+        embeds_final = embeds_final.reset_index(names='HDD.Compound.ID')
+        embeds_final = embeds_final.merge(
+            molData[['HDD.Compound.ID','Mechanism.of.Action']],
+            on = 'HDD.Compound.ID'    )
 
-    embeds_final.to_csv(outdir / "Embeddings.csv")
+        embeds_final.to_csv(outdir / "Embeddings.csv")
 
 
-    all_samples = embeds_final.index
+        all_samples = embeds_final.index
 
-    final_adjacency = pd.DataFrame(S_final)
+        final_adjacency = pd.DataFrame(S_final)
 
-    final_adjacency.to_csv(outdir / "Adjacency.csv")
+        final_adjacency.to_csv(outdir / "Adjacency.csv")
 
 
 if __name__ =="__main__":

@@ -35,6 +35,46 @@ If you haven't installed it yet, [follow these instructions](https://pixi.sh/lat
 pixi install
 ```
 
-## Documentation
+### Data Downloading
 
-Click [here](https://bhklab.github.io/multi-modal-drug-embeddings) to view the full documentation.
+In the `data/rawdata/` folder create three directories named `LINCS`, `HDD` and `GEOM`. 
+
+Next: 
+
+
+
+1. From the [LINCS Project Page](https://orcestra.ca/annotations/69f36604f9dd88b7003f02fd) download the following files and place them in the created `LINCS` directory. 
+    a. `colData.csv`
+    b. `drug_metadata.tsv`
+    c. `signatures.parquet`
+    d. `signatures.tsv`
+2. From the [HDD Project Page](https://orcestra.ca/annotations/6a3e65a98aaa8472dae547c8) download the following file and place it in the created `HDD` directory. 
+    a. `colData.csv`
+3. From the [GEOM Project Page](https://orcestra.ca/annotations/69f3650ef9dd88b7003f02f7) download the following files and place them in the created `GEOM` directory. 
+    a. `colData.tsv`
+    b. `WHIM_hp.parquet`
+    c. `drug_metadata.tsv`
+
+
+### Creating the Embeddings
+
+In `pixi.toml` file, make sure the `scikit-learn` version is set to `">=1.5.0, <1.6"` by uncommenting line 39 and commenting out line 42 in the `pixi.toml` file.
+
+Next navigate to the `workflow/scripts/` folder and execute
+
+`pixi run "python3 generate_embeddings.py -config embedding_config.yaml"`
+
+
+This will generate embeddings for all possible subsets and as such will take a while. 
+
+
+
+### Analyzing the Embeddings
+
+Change the version of `scikit-learn` being used by editing the `pixi.toml`. For this part of the code we need  `scikit-learn` version  `">=1.9.0,<2"`. 
+
+Next execute 
+
+`pixi run "python3 analyze_embeddings.py"` 
+
+to generate the plots. 
