@@ -1,0 +1,6 @@
+drug_to_gene: "http://hainmu-biobigdata.com/hcdt2/download/geneDRUG/DRUG.tsv"
+gene_meta: "http://hainmu-biobigdata.com/hcdt2/download/geneDRUG/GENE.tsv"
+drug_gene_interaction: "http://hainmu-biobigdata.com/hcdt2/download/geneDRUG/DRUG-GENE.tsv"
+drug_to_pathway: "http://hainmu-biobigdata.com/hcdt2/download/pathwayDRUG/DRUG.xlsx"
+pathway_meta: "http://hainmu-biobigdata.com/hcdt2/download/pathwayDRUG/Pathway.xlsx"
+drug_pathway: "http://hainmu-biobigdata.com/hcdt2/download/pathwayDRUG/Drug-Pathway.xlsx"

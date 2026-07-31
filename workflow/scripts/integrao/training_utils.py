@@ -14,7 +14,7 @@ import time
 
 
 from .models import IntegrAO
-from .data_classes import GraphDataset
+from .dataclasses import GraphDataset
 import torch_geometric.transforms as T
 
 
@@ -77,15 +77,12 @@ def tsne_p_deep(dicts_commonIndex,
                 dict_sampleToIndexs, 
                 data, P=np.array([]), 
                 neighbor_size=20, 
-                embedding_dims=50, 
-                alighment_epochs=1000,
-                seed:int = 42):
+                embedding_dims=50, alighment_epochs=1000):
     """
     Runs t-SNE on the dataset in the NxN matrix P to extract embedding vectors
     to no_dims dimensions.
     """
     
-    torch.manual_seed(seed)
     # Check inputs
     if isinstance(embedding_dims, float):
         print("Error: array P should have type float.")

@@ -1,7 +1,7 @@
-site_name: Multi Modal Drug Embeddings
-repo_url: https://github.com/bhklab/multi-modal-drug-embeddings
-repo_name: multi-modal-drug-embeddings
-site_description: Package documentation for Multi Modal Drug Embeddings
+site_name: DNFv2
+repo_url: https://github.com/bhklab/dnf2
+repo_name: dnf2
+site_description: Package documentation for DNFv2
 site_author: James Bannon
 
 # The directory where the documentation files are located
@@ -31,4 +31,4 @@ plugins:
     - include-markdown                  # allows for including Markdown files into another Markdown file
 
 extra:
-    homepage: https://bhklab.github.io/multi-modal-drug-embeddings
+    homepage: https://bhklab.github.io/dnf2

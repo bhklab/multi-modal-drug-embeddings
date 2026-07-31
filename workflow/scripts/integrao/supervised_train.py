@@ -7,16 +7,16 @@ import torch.backends.cudnn as cudnn
 
 cudnn.benchmark = True
 
-from snf.compute import _find_dominate_set
 import numpy as np
+import pandas as pd
 import networkx as nx
 import time
+import os
+from snf.compute import _find_dominate_set
 
-
-from .models import IntegrAO
-from .data_classes import GraphDataset
+from integrao.IntegrAO_supervised import IntegrAO
+from integrao.dataset import GraphDataset
 import torch_geometric.transforms as T
-
 
 def tsne_loss(P, activations):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -68,24 +68,29 @@ def P_preprocess(P):
     np.fill_diagonal(P, 0)  # set diagonal to zero
     P = P + np.transpose(P)  # symmetrize P-values
     P = P / np.sum(P)  # make sure P-values sum to one
-    P = P * 4.0  # early exaggeration
+    # P = P * 4.0  # early exaggeration
     P = np.maximum(P, 1e-12)
     return P
 
+def _load_pre_trained_weights(model, model_path, device):
+    try:
+        state_dict = torch.load(
+            os.path.join(model_path, "model.pth"), map_location=device
+        )
+        # model.load_state_dict(state_dict)
+        model.load_my_state_dict(state_dict)
+        print("Loaded pre-trained model with success.")
+    except FileNotFoundError:
+        print("Pre-trained weights not found. Training from scratch.")
 
-def tsne_p_deep(dicts_commonIndex, 
-                dict_sampleToIndexs, 
-                data, P=np.array([]), 
-                neighbor_size=20, 
-                embedding_dims=50, 
-                alighment_epochs=1000,
-                seed:int = 42):
+    return model
+
+def tsne_p_deep_classification(dicts_commonIndex, dict_sampleToIndexs, dict_original_order, data, clf_labels, model_path=None, P=np.array([]), neighbor_size=20, embedding_dims=50, alighment_epochs=1000, num_classes=2):
     """
     Runs t-SNE on the dataset in the NxN matrix P to extract embedding vectors
     to no_dims dimensions.
     """
     
-    torch.manual_seed(seed)
     # Check inputs
     if isinstance(embedding_dims, float):
         print("Error: array P should have type float.")
@@ -94,7 +99,7 @@ def tsne_p_deep(dicts_commonIndex,
         print("Error: number of dimensions should be an integer.")
         return -1
 
-    print("Starting unsupervised exmbedding extraction!")
+    print("Starting supervised fineting!")
     start_time = time.time()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -104,6 +109,9 @@ def tsne_p_deep(dicts_commonIndex,
     transform = T.Compose([
         T.ToDevice(device), 
     ])
+
+    # clf_labels is a dataframe
+    labels = torch.from_numpy(clf_labels.values.flatten()).long().to(device)
 
     x_dict = {}
     edge_index_dict = {}
@@ -116,17 +124,22 @@ def tsne_p_deep(dicts_commonIndex,
         feature_dims.append(np.shape(data[i])[1])
         print("Dataset {}:".format(i), np.shape(data[i]))
     
-        # preprocess similarity matrix for t-sne loss
+        # preprocess similarity matrix for t-sne kl loss
         P[i] = P_preprocess(P[i])
         P[i] = torch.from_numpy(P[i]).float().to(device)
 
-    net = IntegrAO(feature_dims, hidden_channels, embedding_dims)
-    Project_GNN = init_model(net, device, restore=None)
+        
+    net = IntegrAO(feature_dims, hidden_channels, embedding_dims, num_classes=num_classes).to(device)  # should load pre-trained model
+    
+    if model_path is not None:
+        Project_GNN = _load_pre_trained_weights(net, model_path, device)
+    else:
+        Project_GNN = init_model(net, device, restore=None)
     Project_GNN.train()
 
     optimizer = torch.optim.Adam(Project_GNN.parameters(), lr=1e-1)
     c_mse = nn.MSELoss()
-
+    c_cn = nn.CrossEntropyLoss()
 
     for epoch in range(alighment_epochs):
         adjust_learning_rate(optimizer, epoch)
@@ -137,8 +150,10 @@ def tsne_p_deep(dicts_commonIndex,
         kl_loss = np.array(0)
         kl_loss = torch.from_numpy(kl_loss).to(device).float()
 
-        embeddings = Project_GNN(x_dict, edge_index_dict)
+        # KL loss for each network
+        embeddings, _, pred, _ = Project_GNN(x_dict, edge_index_dict, dict_original_order)
         embeddings = list(embeddings.values())
+
         for i, X_embedding in enumerate(embeddings):
             kl_loss += tsne_loss(P[i], X_embedding)
 
@@ -154,37 +169,32 @@ def tsne_p_deep(dicts_commonIndex,
 
         loss += kl_loss + alignment_loss
 
+        # if classification task, take the average of all the embeddings and calculate the classification loss
+        clf_loss = c_cn(pred, labels)
+        loss += clf_loss
+            
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         if (epoch) % 100 == 0:
             print(
-                "epoch {}: loss {}, align_loss:{:4f}".format(
-                    epoch, loss.data.item(), alignment_loss.data.item()
+                "epoch {}: loss {}, kl_loss:{:4f}, align_loss:{:4f}, clf_loss:{:4f}".format(
+                    epoch, loss.data.item(), kl_loss.data.item(), alignment_loss.data.item(), clf_loss.data.item()
                 )
             )
-        if epoch == 100:
-            for i in range(dataset_num):
-                P[i] = P[i] / 4.0
+        # if epoch == 100:
+        #     for i in range(dataset_num):
+        #         P[i] = P[i] / 4.0
 
     # get the final embeddings for all samples
-    embeddings = Project_GNN(x_dict, edge_index_dict)
-    for i in range(dataset_num):
-        embeddings[i] = embeddings[i].detach().cpu().numpy()   
-
-    # compute the average embedding for each sample
-    final_embedding = np.array([]).reshape(0, embedding_dims)
-    for key in dict_sampleToIndexs:
-        sample_embedding = np.zeros((1, embedding_dims))
-
-        for (dataset, index) in dict_sampleToIndexs[key]:
-            sample_embedding += embeddings[dataset][index]
-        sample_embedding /= len(dict_sampleToIndexs[key])
-
-        final_embedding = np.concatenate((final_embedding, sample_embedding), axis=0)
+    embeddings, X_embedding_avg, preds, _ = Project_GNN(x_dict, edge_index_dict, dict_original_order)
+    pred = pred.detach().cpu().numpy()
+            
+    # Now I need to put X_embedding_avg in order
+    final_embeddings = X_embedding_avg.detach().cpu().numpy()
 
     end_time = time.time()
     print("Manifold alignment ends! Times: {}s".format(end_time - start_time))
 
-    return final_embedding, Project_GNN
+    return final_embeddings, Project_GNN, preds

@@ -1,0 +1,18 @@
+#
+#
+#
+#
+#   Code to recreate the results of Drug Network Fusion (DNF1) to create
+#   Embeddings with the 
+#
+#
+#
+
+
+
+NETWORK_CONSTRUCTION:
+    layers: ['CTRPv2','MorganFingerpint','LINCS']
+    metrics: ['Pearson', 'Tanimoto', 'SqEuc']
+    mu: 0.4
+    nbhd_size: 20
+    embedding_dimension: 100
